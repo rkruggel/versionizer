@@ -132,14 +132,24 @@ class PCompile(PBasic):
             else:
                 # Differenz ist kleiner als 30 Minuten. Der Wert 'end' wird aktualisiert
                 self.ccJson[llnr]['end'] = self.jetzt
+                self.makezeit(lastline, llnr)
                 self._write()
 
 
-parser.add_argument('-i', '--init', action='store_true', default=False,
+
+# -------------------------------------------------------------------------
+
+parser.add_argument('-i', '--init',
+                    action='store_true',
+                    default=False,
                     help='Erstellt die files version.json und compile.json')
-parser.add_argument('-fv', action='store', dest='version_file', default='',
+parser.add_argument('-fv',
+                    action='store', dest='version_file',
+                    default='',
                     help='Name des Versionierungs File')
-parser.add_argument('-fc', action='store', dest='compile_file', default='',
+parser.add_argument('-fc',
+                    action='store', dest='compile_file',
+                    default='',
                     help='Name des Compile File')
 
 result = parser.parse_args()

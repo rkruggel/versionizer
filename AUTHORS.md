@@ -1,0 +1,1 @@
+Salvare and SalvareUi is written and maintained by Roland Kruggel andvarious contributors:## Development Lead- Roland Kruggel (rk) <rkruggel@bbf7.de>### Patches and Contributions
