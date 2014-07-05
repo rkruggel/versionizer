@@ -1,0 +1,18 @@
+#OSX
+.Python
+.DS_Store
+
+# PyCharm
+.idea
+
+# SublimeText project files
+*.sublime-*
+
+# Python
+*.py[co]
+
+
+# Eve
+run.py
+settings.py
+
