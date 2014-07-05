@@ -6,8 +6,6 @@ Es sind vielfach Ideen und Planungen.
 
 ## Planung
 
-**C001** `compile.json` soll umbenannt werden in `history.json`.
-
 **C001** `history.json` und `version.json` sollen als defaultwert vorbesetzt werden.
 
 

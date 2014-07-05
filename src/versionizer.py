@@ -72,17 +72,17 @@ class PVersion(PBasic):
 
 class PCompile(PBasic):
     """
-        compile.json bearbeiten
+        history.json bearbeiten
     """
 
-    def __init__(self, compile_file):
+    def __init__(self, history_file):
         PBasic.__init__(self)
-        self.ccFile = compile_file
+        self.ccFile = history_file
         self._read()
 
     def init(self):
         if self.ccFile:
-            self.ccJson = [{'start': self.jetzt, 'end': self.jetzt, 'zeit': 0}]
+            self.ccJson = [{'start': self.jetzt, 'end': self.jetzt, 'minutes': 0}]
             self._write()
 
     def makezeit(self, lastline, linenr):
@@ -95,17 +95,17 @@ class PCompile(PBasic):
         t1 = datetime.datetime.strptime(lastline['start'], self.ccFormat)
         t2 = datetime.datetime.strptime(lastline['end'], self.ccFormat)
         diff = t2 - t1
-        self.ccJson[linenr]['zeit'] = int(diff.total_seconds() / 60)
+        self.ccJson[linenr]['minutes'] = int(diff.total_seconds() / 60)
 
     def insertnewline(self):
         """
         Eine neue Zeile einfügen
         :return:
         """
-        js = {'start': self.jetzt, 'end': self.jetzt, 'zeit': 0}
+        js = {'start': self.jetzt, 'end': self.jetzt, 'minutes': 0}
         self.ccJson.append(js)
 
-    def increment_compile(self):
+    def increment_history(self):
         llnr = len(self.ccJson) - 1  # last Line Nr -1
 
         # wenn daten gelesen wurden
@@ -136,19 +136,18 @@ class PCompile(PBasic):
                 self._write()
 
 
-
 # -------------------------------------------------------------------------
 
 parser.add_argument('-i', '--init',
                     action='store_true',
                     default=False,
-                    help='Erstellt die files version.json und compile.json')
+                    help='Erstellt die files version.json und history.json')
 parser.add_argument('-fv',
                     action='store', dest='version_file',
                     default='',
                     help='Name des Versionierungs File')
 parser.add_argument('-fc',
-                    action='store', dest='compile_file',
+                    action='store', dest='history_file',
                     default='',
                     help='Name des Compile File')
 
@@ -158,7 +157,7 @@ if result.init:
     o1 = PVersion(result.version_file)
     o1.init()
 
-    o2 = PCompile(result.compile_file)
+    o2 = PCompile(result.history_file)
     o2.init()
     exit()
 
@@ -168,11 +167,11 @@ if len(result.version_file) > 0:
         o1.init()
     o1.increment_build()
 
-if len(result.compile_file) > 0:
-    o2 = PCompile(result.compile_file)
-    if not os.path.exists(result.compile_file):
+if len(result.history_file) > 0:
+    o2 = PCompile(result.history_file)
+    if not os.path.exists(result.history_file):
         o2.init()
-    o2.increment_compile()
+    o2.increment_history()
 
 
 
