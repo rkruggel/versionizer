@@ -1,1 +1,1 @@
-```versionizer``` is written and maintained by Roland Kruggel andvarious contributors:## Development Lead- Roland Kruggel (rk) <rkruggel@bbf7.de>   Main Developer## Patches and Contributions
+`versionizer` is written and maintained by Roland Kruggel andvarious contributors:## Development Lead- Roland Kruggel (rkr) <rkruggel@bbf7.de>   Main Developer## Patches and Contributions- Petra Kruggel (pkr) <petra.kruggel@gmx.de>   advisor
