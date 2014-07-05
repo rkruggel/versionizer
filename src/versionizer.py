@@ -19,7 +19,19 @@ import json
 
 __author__ = 'rkruggel'
 
+gCwd = None
+
 parser = argparse.ArgumentParser(description='Incrementiert die Versionen und dokumentiert das kompilieren.')
+
+
+class pStatics(object):
+    @staticmethod
+    def getVersionfile():
+        return result.cwd + '/' + result.version_file
+
+    @staticmethod
+    def getHistoryfile():
+        return result.cwd + '/' + result.history_file
 
 
 class PBasic(object):
@@ -54,9 +66,9 @@ class PVersion(PBasic):
         version.json bearbeiten
     """
 
-    def __init__(self, version_file):
+    def __init__(self):
         PBasic.__init__(self)
-        self.ccFile = version_file
+        self.ccFile = pStatics.getVersionfile()
         self._read()
 
     def init(self):
@@ -75,9 +87,9 @@ class PCompile(PBasic):
         history.json bearbeiten
     """
 
-    def __init__(self, history_file):
+    def __init__(self):
         PBasic.__init__(self)
-        self.ccFile = history_file
+        self.ccFile = pStatics.getHistoryfile()
         self._read()
 
     def init(self):
@@ -144,34 +156,62 @@ parser.add_argument('-i', '--init',
                     help='Erstellt die files version.json und history.json')
 parser.add_argument('-fv',
                     action='store', dest='version_file',
-                    default='',
-                    help='Name des Versionierungs File')
-parser.add_argument('-fc',
+                    default='version.json',
+                    help='Name des Version-File ohne Pfad (default: version.json)')
+parser.add_argument('-fh',
                     action='store', dest='history_file',
-                    default='',
-                    help='Name des Compile File')
+                    default='history.json',
+                    help='Name des History-File ohne Pfad (default: history.json)')
+parser.add_argument('-wd',
+                    action='store', dest='cwd',
+                    default=os.getcwd(),
+                    help='Das working direktory')
+parser.add_argument('-q', '--quit',
+                    action='store_true', dest='quit', default=False,
+                    help='keine ausgabe auf der console')
 
 result = parser.parse_args()
 
-if result.init:
-    o1 = PVersion(result.version_file)
-    o1.init()
 
-    o2 = PCompile(result.history_file)
-    o2.init()
-    exit()
+def printconsole(key, value):
+    if not result.quit:
+        print key + ': ' + value
 
-if len(result.version_file) > 0:
-    o1 = PVersion(result.version_file)
-    if not os.path.exists(result.version_file):
+
+if __name__ == "__main__":
+
+    a = 0
+
+    if result.init:
+        # gVersionFilename = result.version_file
+        o1 = PVersion()
         o1.init()
-    o1.increment_build()
 
-if len(result.history_file) > 0:
-    o2 = PCompile(result.history_file)
-    if not os.path.exists(result.history_file):
+        # gHistoryFilename = result.history_file
+        o2 = PCompile()
         o2.init()
-    o2.increment_history()
+        exit()
 
+    if len(result.version_file) > 0:
+        # gVersionFilename = result.version_file
+        _dd = pStatics.getVersionfile()
+        o1 = PVersion()
+        if not os.path.exists(pStatics.getVersionfile()):
+            o1.init()
+        o1.increment_build()
 
+    if len(result.history_file) > 0:
+        # gHistoryFilename = result.history_file
+        o2 = PCompile()
+        if not os.path.exists(pStatics.getHistoryfile()):
+            o2.init()
+        o2.increment_history()
 
+    print 'ja' if result.quit else 'nein'
+
+    gCwd = result.cwd
+
+    # Usage example.
+    printconsole('working path', gCwd)
+    printconsole('version file path', pStatics.getVersionfile())
+    printconsole('history file path', pStatics.getHistoryfile())
