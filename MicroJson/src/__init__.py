@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Projekt : versionizer
+    Projekt : cosa
   
-       File : __init__
-      Datum : 05.07.14
+       File : __init__.py
+      Datum : 13.07.14
       Autor : rkruggel
   Copyright : Roland Kruggel, 2014
   
@@ -13,5 +13,3 @@
 """
 
 __author__ = 'rkruggel'
-__version__ = '0.0.2'
-

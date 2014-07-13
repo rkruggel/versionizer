@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Projekt : versionizer
+    Projekt : cosa
 
-       File : versionizer
+       File : cosa
       Datum : 02.07.14
       Autor : rkruggel
   Copyright : Roland Kruggel, 2014
@@ -16,8 +16,12 @@ import datetime
 import time
 import argparse
 import json
-import simplejson
-import string
+import pprint
+
+from microjason.src.jsonpickle import JsonDictDb
+
+
+# from jsonpickle import JsonListDb
 
 
 JSONDB_PREFIX = 'jsondb_'
@@ -29,101 +33,13 @@ gConfig = {}
 version_dict = {}
 version_list = []
 
-
-class JsonDb(object):
-    loco = None  # der filename
-    fsave = None  # True -> es soll gespeichert werden
-    db = {}  # die DB als dict
-
-    def __init__(self, location, option):
-        """Creates a database object and loads the data from the location path.
-        If the file does not exist it will be created on the first update."""
-        self.load(location, option)
-
-    #
-    # laden / speichern
-    #
-
-    def load(self, location, option):
-        """Loads, reloads or changes the path to the db file.
-        DO NOT USE this method has it may be deprecated in the future."""
-        location = os.path.expanduser(location)
-        self.loco = location
-        self.fsave = option
-        if os.path.exists(location):
-            self._loaddb()
-        else:
-            self.db = {}
-        return True
-
-    def _loaddb(self):
-        """Load or reload the json info from the file"""
-        self.db = simplejson.load(open(self.loco, 'rb'))
-
-    def save(self):
-        """Force save memory db to file."""
-        self._savedb(True)
-        return True
-
-    def _savedb(self, forced):
-        """Dump (write, save) the json save into the file"""
-        if forced:
-            simplejson.dump(self.db, open(self.loco, 'wb'))
-
-    #
-    # diverses
-    #
-
-    # @staticmethod
-    def getId(self):
-        return time.time()
-
-    #
-    # set/get
-    #
-
-    def set(self, key, value):
-        """Set the (string,int,whatever) value of a key"""
-        self.db[key] = value
-        self._savedb(self.fsave)
-        return True
-
-    def get(self, key):
-        """Get the value of a key"""
-        try:
-            return self.db[key]
-        except KeyError:
-            return None
-
-    def getall(self):
-        """Return a list of all keys in db"""
-        return self.db.keys()
-
-    def rem(self, key):
-        """Delete a key"""
-        del self.db[key]
-        self._savedb(self.fsave)
-        return True
-
-    def count(self):
-        """
-        :return: Anzahl der Datensätze in der db
-        """
-        return len(self.db)
-
-    def exist(self):
-        """
-        :return: True, wenn datensätze existieren
-        """
-        return self.count() >= 1
-
-
-class PDb(JsonDb):
-    def __init__(self, location, option):
-        JsonDb.__init__(self, location, option)
-        if not os.path.exists(JSONDB_PATH):
-            os.mkdir(JSONDB_PATH)
-
+version_data = {
+    "date": "01.01.1970 00:00:00",
+    "major": 0,
+    "minor": 0,
+    "revision": 0,
+    "build": 0
+}
 
 class PStatics(object):
     """ Statische Klasse.
@@ -146,10 +62,6 @@ class PStatics(object):
         return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + 'history.json'
 
     @staticmethod
-    def getDbConfigfile():
-        return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + 'config.json'
-
-    @staticmethod
     def printconsole(key, value):
         if not result.quit:
             print key + ': ' + str(value)
@@ -160,7 +72,6 @@ class PBasic(object):
     ccJson = {}  # Inhalt der Json-Datei
 
     ccFormat = '%d.%m.%Y %H:%M:%S'  # generelles Format der Datum/Zeit Angabe
-    # db = None
     data = {}
     ddb = None
 
@@ -195,8 +106,8 @@ class PVersion(PBasic):
         self.init()
 
     def init(self):
-        self.ccFile = PStatics.getVersionfile()
-        self.ddb = PDb(PStatics.getDbVersionfile(), False)
+        # self.ccFile = PStatics.getVersionfile()
+        self.ddb = JsonDictDb(PStatics.getDbVersionfile(), False)
         self.data = self.ddb.get('1')
         if not self.ddb.exist():
             db = {
@@ -211,10 +122,14 @@ class PVersion(PBasic):
 
     def write_versionfile(self):
         self.data = self.ddb.get('1')
-        self.ccJson = {'date': self.data['date'],
-                       'version': str(self.data['major']) + '.' + str(self.data['minor']) + '.' + str(
-                           self.data['revision']),
-                       'build': self.data['build']}
+        pprint.pprint(
+            {
+                'date': self.data['date'],
+                'version': str(self.data['major']) + '.' + str(self.data['minor']) + '.' + str(self.data['revision']),
+                'build': self.data['build']
+            }
+        )
+
         self._write()
 
     def increment_build(self):
@@ -249,7 +164,9 @@ class PHistory(PBasic):
         self.init()
 
     def init(self):
-        self.ddb = PDb(PStatics.getDbHistoryfile(), False)
+        self.ddb = JsonDictDb(PStatics.getDbHistoryfile(), False)
+
+        a = 0
 
         if not self.ddb.exist():
             db = {
@@ -257,8 +174,29 @@ class PHistory(PBasic):
                 'end': self.jetzt,
                 'minutes': 0,
             }
-            self.ddb.set(self.ddb.getId(), db)
+            nic = self.ddb.setlist(db, xlistid='1')
             self.ddb.save()
+
+    # (IMHO) the simplest approach:
+    def sortedDictValues1(adict):
+        items = adict.items()
+        items.sort()
+        return [value for key, value in items]
+
+    # an alternative implementation, which
+    # happens to run a bit faster for large
+    # dictionaries on my machine:
+    def sortedDictValues2(adict):
+        keys = adict.keys()
+        keys.sort()
+        return [dict[key] for key in keys]
+
+    # a further slight speed-up on my box
+    # is to map a bound-method:
+    def sortedDictValues3(adict):
+        keys = adict.keys()
+        keys.sort()
+        return map(adict.get, keys)
 
     def makezeit(self, lastline):
         """
@@ -281,11 +219,19 @@ class PHistory(PBasic):
         return js
 
     def increment_history(self):
+        a = 0
         lastIds = self.ddb.getall()
-        lastIds.sort(reverse=True)
+        coo = self.ddb.count()
+        # lastIds.sort(reverse=True)
 
-        lastId = lastIds[0]
-        self.data = self.ddb.get(lastId)
+        # lastId = lastIds[0]
+
+        t1 = self.ddb.get('1')
+        t2 = self.ddb.getlist('1', 0)
+
+        t0 = self.ddb.getlast()
+
+        self.data = self.ddb.getlistlast('1')
 
         a = 0
 
@@ -306,22 +252,26 @@ class PHistory(PBasic):
             # im vorhandenen Datensatz die Zeit setzen
             self.data['minutes'] = self.makezeit(self.data)
             # einen neuen Datensatz einfügen
-            self.ddb.set(self.ddb.getId(), self.insertnewline())
-            self.ddb.save()
+            # self.ddb.set(self.ddb.getId(), self.insertnewline())
+            self.ddb.setlist(self.data, xdictid='1')
         else:
             # Differenz ist kleiner als 30 Minuten. Der Wert 'end' wird aktualisiert
             self.data['end'] = self.jetzt
             self.data['minutes'] = self.makezeit(self.data)
-            self.ddb.save()
+
+        self.ddb.save()
+
+    def listen(self):
+        """ listet die History files auf und stellt sie zum Ändern bereit """
+
+        pprint.pprint(self.ddb.db)
 
 
 # -------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser(description='Incrementiert die Versionen und dokumentiert das kompilieren.')
 
-parser.add_argument('--install', action='store_true', dest='install', default=False,
-                    help='Initialisiert die DB und die initfiles')
-
+# -- diverses
 parser.add_argument('-wd',
                     action='store', dest='cwd',
                     default=os.getcwd(),
@@ -330,6 +280,7 @@ parser.add_argument('-q', '--quit',
                     action='store_true', dest='quit', default=False,
                     help='Keine Ausgabe auf der console')
 
+# -- version
 parser.add_argument('--version', action='store_true', dest='version', default=False,
                     help='Jeder befehl der Version wird hiermit eingeleitet.')
 parser.add_argument('-vb', '--build', action='store_true', dest='build', default=False,
@@ -340,71 +291,25 @@ parser.add_argument('-vi', '--minor', action='store_true', dest='minor', default
                     help='Die Minor-Nr wird um eins erhöht')
 parser.add_argument('-vr', '--rev', action='store_true', dest='revision', default=False,
                     help='Die Revisions-Nr wird um eins erhöht')
+
 parser.add_argument('-vp', '--vprint', action='store_true', dest='vprint', default=False,
                     help='Die Version printen')
 
+# -- history
 parser.add_argument('--history', action='store_true', dest='history', default=False,
                     help='Jeder Befehl der History wird hiermit eingeleitet.')
 parser.add_argument('-hi', '--insert', action='store_true', dest='insert', default=False,
                     help='Fügt einen Datensatz in die History ein')
+parser.add_argument('-li', '--list', action='store_true', dest='listen', default=False,
+                    help='Die Version printen')
 
 result = parser.parse_args()
 
 
-def installdb():
-    """
-    Installiert eine neue db. Muss nur einmal aufgerufen werden.
-    :return:
-    """
-    if not os.path.exists(JSONDB_PATH):
-        os.mkdir(JSONDB_PATH)
-
-    # --- config db anlegen/ändern
-    inidict = {'name': 'versionizer',
-               'mainuser': 'rkruggel',
-               'historytime': 46,
-               'doVersion': True,
-               'doHistory': True,
-    }
-
-    db = PDb(PStatics.getDbConfigfile(), False)
-    db.set('1', inidict)
-    db.save()
-
-    # --- config neu einlesen
-    gConfig = getConfig()
-
-
-def getConfig():
-    return PDb(PStatics.getDbConfigfile(), False)
-
-
 def run():
     gCwd = result.cwd
-    conf = PDb(PStatics.getDbConfigfile(), False)
-    gConfig = conf.get('1')
 
-    # test
-    # if result.vprint:
-    # oo = PVersion()
-    # oo.write_versionfile()
-    # exit()
-
-    if result.install:
-        installdb()
-        exit()
-
-    # if result.init:
-    # o1 = PVersion()
-    # o1.init()
-    #
-    # o2 = PHistory()
-    # o2.init()
-    # exit()
-
-    # a1 = result.version
-    # a2 = gConfig['doVersion']
-    if result.version and gConfig['doVersion']:
+    if result.version:
         pv = PVersion()
 
         if result.build:
@@ -422,23 +327,22 @@ def run():
         if result.vprint:
             pv.write_versionfile()
 
-    if result.history and gConfig['doHistory']:
+    if result.history:
         # gHistoryFilename = result.history_file
         ph = PHistory()
 
         if result.insert:
-            # if not os.path.exists(PStatics.getHistoryfile()):
-            # ph.init()
             ph.increment_history()
 
-    print 'ja' if result.quit else 'nein'
+        # print 'ja' if result.quit else 'nein'
 
-    # Usage example.
-    PStatics.printconsole('working path', gCwd)
-    PStatics.printconsole('version file path', PStatics.getVersionfile())
-    PStatics.printconsole('history file path', PStatics.getHistoryfile())
+        # Usage example.
+        # PStatics.printconsole('working path', gCwd)
+        # PStatics.printconsole('version file path', PStatics.getVersionfile())
+        # PStatics.printconsole('history file path', PStatics.getHistoryfile())
 
 
 if __name__ == "__main__":
     run()
+
 

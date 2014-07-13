@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Projekt : versionizer
+    Projekt : cosa
   
        File : jsonDb
       Datum : 05.07.14
@@ -47,7 +47,7 @@ import simplejson
 
 
 def load(location, option):
-    """Return a JsonDb object. location is the path to the json file."""
+    """Return a MicroJson object. location is the path to the json file."""
     return pickleDb(location, option)
 
 
