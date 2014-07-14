@@ -79,7 +79,16 @@ class MicroJson(object):
 class JsonDictDb(MicroJson):
     def __init__(self, location, option):
         """Creates a database object and loads the data from the location path.
-            If the file does not exist it will be created on the first update."""
+            If the file does not exist it will be created on the first update.
+
+        >>> fi = '../.testdb/t_dict.json'
+        >>> tb = JsonDictDb(fi, False)
+        >>> os.path.exists(fi)
+        True
+        >>> import shutil
+        >>> fi = '../.testdb/'
+        >>> shutil.rmtree(fi)
+        """
         super(JsonDictDb, self).__init__(location, option)
         self.db = {}
         if not os.path.exists(self.loco):
@@ -134,6 +143,8 @@ class JsonDictDb(MicroJson):
             # -- insert
             self.db[_id] = value
             self._savedb(self.fsave)
+
+        return _id
 
     def setlist(self, value, xdictid=None, xlistid=None):
 
@@ -272,11 +283,11 @@ class JsonDictDb(MicroJson):
 
 # class JsonListDb(MicroJson):
 # def __init__(self, location, option):
-#         """Creates a database object and loads the data from the location path.
-#         If the file does not exist it will be created on the first update."""
-#         super(JsonListDb, self).__init__(location, option)
-#         self.db = []
-#         if not os.path.exists(self.loco):
+# """Creates a database object and loads the data from the location path.
+# If the file does not exist it will be created on the first update."""
+# super(JsonListDb, self).__init__(location, option)
+# self.db = []
+# if not os.path.exists(self.loco):
 #             self._savedb(True)
 #         self.load()
 #
@@ -351,7 +362,35 @@ class JsonDictDb(MicroJson):
 #         return self.count() >= 1
 #
 
+class Illolo:
+    def summe(self, a, b):
+        """
+        addiert zwei zahlen
+
+        >>> kk = Illolo()
+        >>> kk.summe(2,4)
+        8
+        >>> kk = Illolo()
+        >>> kk.summe(2)
+        Traceback (most recent call last):
+            ...
+        TypeError: summe() takes exactly 3 arguments (2 given)
+        >>> kk = Illolo()
+        >>> kk.summe()
+        Traceback (most recent call last):
+            ...
+        TypeError: summe() takes exactly 3 arguments (1 given)
+        """
+
+        x = (a + b) + 2
+        return x
+
+
 if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
+
     a = 0
 
 
@@ -415,7 +454,7 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------
 
     # -- List-Datensatz hinzufügen
-    if 1:
+    if 0:
         # liste hinzufügen
         #dd = []
         #nid = tb.set(dd, xid='210')
