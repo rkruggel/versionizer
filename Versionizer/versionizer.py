@@ -11,6 +11,10 @@
   Bescheibung:
    ...
 """
+import sys
+sys.path.append('/Users/rkruggel/Dropbox/Develop/Python/cosa/exe')
+
+
 import os
 import datetime
 import time
@@ -18,7 +22,8 @@ import argparse
 import json
 import pprint
 
-from microjason.src.jsonpickle import JsonDictDb
+
+import MicroJson.MicroJson
 
 
 # from jsonpickle import JsonListDb
