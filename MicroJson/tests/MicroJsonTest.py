@@ -12,94 +12,131 @@
    ...
 """
 import time
-
-from MicroJson import JsonDictDb
-import MicroJson
-
-__author__ = 'rkruggel'
-
 import unittest
 import os
 import shutil
 
+from MicroJson import MicroJson
+
+__author__ = 'rkruggel'
+
 
 class MicroJsonTest(unittest.TestCase):
-    DICT_FILE = 't_dict.json'
     DICT_PATH = '../.testdb'
+    DICT_FILE = 't_dict.json'
     DICT_FULLPATH = DICT_PATH + '/' + DICT_FILE
+    DICT_LISTFILE = 't_list.json'
+    DICT_LISTFULLPATH = DICT_PATH + '/' + DICT_LISTFILE
 
-
-    # def __init__(self):
-    # super(MicroJsonTest, self).__init__()
-    # fi = '../.testdb'
-    #     try:
-    #         shutil.rmtree(fi)
-    #     except:
-    #         pass
-
-    def inst(self, para=True):
+    def inst_dict(self, para=True):
         """Instanz erzeugen"""
-        tb = MicroJson.JsonDictDb(self.DICT_FULLPATH, para)
-        self.assertIsInstance(tb, MicroJson.JsonDictDb, msg="JsonDictDb kann nicht instanziert werden")
-        return MicroJson.JsonDictDb(self.DICT_FULLPATH, para)
+        tb = MicroJson(self.DICT_FULLPATH, para)
+        self.assertIsInstance(tb, MicroJson, msg="MicroJson (Dict) kann nicht instanziert werden")
+        return MicroJson(self.DICT_FULLPATH, para)
+
+    def inst_list(self, para=True):
+        """Instanz erzeugen"""
+        tl = MicroJson(self.DICT_LISTFULLPATH, para)
+        self.assertIsInstance(tl, MicroJson, msg="MicroJson (List) kann nicht instanziert werden")
+        return MicroJson(self.DICT_LISTFULLPATH, para)
 
     def setUp(self):
         """"""
-        self.tb = self.inst()
+        self.tb = self.inst_dict()
+        self.tl = self.inst_list()
         self.dt = time.time()
-        self.dt2 = int(self.dt / 100)
+        self.dt100 = int(self.dt / 100)
 
     def tearDown(self):
         """"""
         pass
 
     def test000(self):
-        """ Der erste Test ist eigentlich kein test. Er löscht die DB
+        """ Der erste Test ist eigentlich kein test. Er löscht die DB. In
+        diesem Fall das gesamte subdir
         """
         try:
             shutil.rmtree(self.DICT_PATH)
         except:
             pass
 
-    def test001_make_instanze(self):
-        """ init
+    def test001_dict_makeinstanze(self):
+        """ init dict
         Eine ganz neue Instanz erzeugen """
-        self.tb = self.inst(False)
+        self.tb = self.inst_dict(False)
         self.assertTrue(os.path.exists(self.DICT_FULLPATH),
-                        msg="JsonDictDb kann nicht instanziert werden. File nicht da")
+                        msg="MicroJson (dict) kann nicht instanziert werden. File nicht da")
 
-    def test001_make_instanze2(self):
-        """ init
+    def test001_list_makeinstanze(self):
+        """ init list
+        Eine ganz neue Instanz erzeugen """
+        self.tb = self.inst_list(False)
+        self.assertTrue(os.path.exists(self.DICT_LISTFULLPATH),
+                        msg="MicroJson (list) kann nicht instanziert werden. File nicht da")
+
+
+    def test002_dict_makeinstanze(self):
+        """ init dict
         Eine Instanz erzeugen wenn sie schon da ist """
-        self.tb = self.inst(True)
+        self.tb = self.inst_dict(True)
         self.assertTrue(os.path.exists(self.DICT_FULLPATH),
-                        msg="JsonDictDb kann nicht zum zweiten mal instanziert werden. File nicht da")
+                        msg="MicroJson (dict) kann nicht zum zweiten mal instanziert werden. File nicht da")
+
+    def test002_list_makeinstanze(self):
+        """ init list
+        Eine Instanz erzeugen wenn sie schon da ist """
+        self.tb = self.inst_list(True)
+        self.assertTrue(os.path.exists(self.DICT_LISTFULLPATH),
+                        msg="MicroJson (list) kann nicht zum zweiten mal instanziert werden. File nicht da")
 
     #
     # diverse 1
     #
 
-    def test004_id(self):
+    def test010_dict_id(self):
         """ diverses
         Id holen
         """
         # dt = int(time.time() / 100)
         id = self.tb.getId()
         b = int(float(id) / 100)
-        self.assertTrue(b == self.dt2)
+        self.assertTrue(b == self.dt100)
 
-    def test010_count(self):
+    def test010_list_id(self):
+        """ diverses
+        Id holen
+        """
+        # dt = int(time.time() / 100)
+        id = self.tl.getId()
+        b = int(float(id) / 100)
+        self.assertTrue(b == self.dt100)
+
+    def test011_dict_count(self):
         """ diverses
         Anzahl der vorhandenen Datensätze
         """
         dd = self.tb.count()
         self.assertTrue(dd == 0)
 
-    def test011_exist(self):
+    def test011_list_count(self):
+        """ diverses
+        Anzahl der vorhandenen Datensätze
+        """
+        dd = self.tl.count()
+        self.assertTrue(dd == 0)
+
+    def test012_dict_exist(self):
         """ diverses
         Sind Datensätze vorhanden
         """
         dd = self.tb.exist()
+        self.assertFalse(dd)
+
+    def test012_list_exist(self):
+        """ diverses
+        Sind Datensätze vorhanden
+        """
+        dd = self.tl.exist()
         self.assertFalse(dd)
 
 
@@ -107,38 +144,76 @@ class MicroJsonTest(unittest.TestCase):
     # insert
     #
 
-    def test020_insertdict00(self):
+    # -01a-
+    def test020_dict_insert(self):
         """ insert
         Insert im dict """
         data = {'name': 'petra', 'alter': 54, 'id': '4710'}
         self.id2 = self.tb.set(data)
         assert '4710' == self.id2
 
-    def test021_insertdict01(self):
+    # -01b-
+    def test020_list_insert(self):
+        """ insert
+        Insert in list """
+        data = {'tell': 'gewitter', 'tale': 'Es blitzt und donnert'}
+        nid = self.tl.setlist(data, xdictid='101', xlistid='20')
+        self.assertTrue(nid == '20')
+
+
+    # -02a-
+    def test021_dict_insert(self):
         """ insert
         Insert im dict """
         data = {'name': 'roland', 'alter': 54}
         self.id1 = self.tb.set(data)
-        assert str(self.dt2) in self.id1
+        assert str(self.dt100) in self.id1
 
-    def test022_insertdict02(self):
+    def test021_list_insert(self):
+        """ insert
+        Insert im dict """
+        data = {'tell': 'sturm', 'tale': 'Es windet seer'}
+        nid = self.tl.setlist(data, xlistid='20')
+        self.assertTrue(nid == '20')
+
+
+    # -03a-
+    def test022_dict_insert(self):
         """ insert
         Insert im dict """
         data = {'name': 'roland', 'alter': 54, 'id': '4711'}
         self.id2 = self.tb.set(data)
         assert '4711' == self.id2
 
-    def test024_insertdict03(self):
+    def test022_list_insert(self):
+        """ insert
+        Insert im dict """
+        data = {'tell': 'regen', 'tale': 'it\'s raining cats and dogs'}
+        nid = self.tl.setlist(data, xlistid='20')
+        self.assertTrue(nid == '20')
+
+
+    # -04a-
+    def test024_dict_insert(self):
         """ insert
         Insert im dict """
         data = {'name': 'roland', 'alter': 54, 'id': '4711'}
         self.id3 = self.tb.set(data, '4711b')
         assert '4711b' == self.id3
 
+    def test024_list_insert(self):
+        """ insert
+        Insert im dict """
+        data = {'tell': 'schnee', 'tale': 'weisser pflaum liegt auf dem zaunpfosten'}
+        nid = self.tl.setlist(data, xlistid='20')
+        self.assertTrue(nid == '20')
+
+
     #
     # diverse 2
     #
 
+    # todo: hier gehts weiter
     def test030_count(self):
         """ diverses
         Anzahl der vorhandenen Datensätze
@@ -200,7 +275,7 @@ class MicroJsonTest(unittest.TestCase):
         self.assertTrue(nic)
         dd = self.tb.get('4711b')
         self.assertIsNone(dd)
-        a=0
+        a = 0
 
 
     #
@@ -211,9 +286,7 @@ class MicroJsonTest(unittest.TestCase):
         """
         Aufräumen
         """
-        fi = '../.testdb'
-        # shutil.rmtree(fi)
-        # self.assertFalse(os.path.exists(fi), msg="Dir kann nicht gelöscht werden")
+        pass
 
 
 if __name__ == '__main__':

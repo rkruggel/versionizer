@@ -11,9 +11,10 @@
   Bescheibung:
    ...
 """
-import sys
-sys.path.append('/Users/rkruggel/Dropbox/Develop/Python/cosa/exe')
+from StdSuites.Text_Suite import paragraph
 
+import sys
+# sys.path.append('/Users/rkruggel/Dropbox/Develop/Python/cosa/exe')
 
 import os
 import datetime
@@ -22,15 +23,20 @@ import argparse
 import json
 import pprint
 
+import os
+import time
+# from datetime import datetime
 
-import MicroJson.MicroJson
 
+from MicroJson import JsonDictDb
 
-# from jsonpickle import JsonListDb
+# from exe.MicroJsonBasic.MicroJsonBasic import *
 
 
 JSONDB_PREFIX = 'jsondb_'
 JSONDB_PATH = 'jsondb'
+
+gPath = None
 
 gCwd = None
 gConfig = {}
@@ -39,6 +45,7 @@ version_dict = {}
 version_list = []
 
 version_data = {
+    "id": "1",
     "date": "01.01.1970 00:00:00",
     "major": 0,
     "minor": 0,
@@ -46,25 +53,45 @@ version_data = {
     "build": 0
 }
 
+history_data = {
+    "id": "1",
+    "start": "01.01.1970 00:00:00",
+    "end": "01.01.1970 00:00:00",
+    "minutes": 0
+}
+
+a = 0
+
+
 class PStatics(object):
     """ Statische Klasse.
     """
 
+    VERSION_FILE = 'version.json'
+    HISTORY_FILE = 'history.json'
+
     @staticmethod
     def getVersionfile():
-        return result.cwd + '/' + 'version.json'
+        global gPath
+        #return result.cwd + '/' + PStatics.VERSION_FILE
+        if gPath is None:
+            st = result.cwd
+        else:
+            st = result.cwd + '/' + gPath
+        aa = os.path.exists(st)
+        a=0
 
     @staticmethod
     def getDbVersionfile():
-        return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + 'version.json'
+        return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + PStatics.VERSION_FILE
 
     @staticmethod
     def getHistoryfile():
-        return result.cwd + '/' + 'history.json'
+        return result.cwd + '/' + PStatics.HISTORY_FILE
 
     @staticmethod
     def getDbHistoryfile():
-        return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + 'history.json'
+        return result.cwd + '/' + JSONDB_PATH + '/' + JSONDB_PREFIX + PStatics.HISTORY_FILE
 
     @staticmethod
     def printconsole(key, value):
@@ -77,13 +104,13 @@ class PBasic(object):
     ccJson = {}  # Inhalt der Json-Datei
 
     ccFormat = '%d.%m.%Y %H:%M:%S'  # generelles Format der Datum/Zeit Angabe
-    data = {}
-    ddb = None
+    micodb = None
 
     def __init__(self):
         self.jetzt = time.strftime(self.ccFormat, time.localtime())
 
-    a = 0
+    def getNewId(self):
+        return str(int(round(time.time() * 1000)))
 
     def _read(self):
         try:
@@ -105,58 +132,56 @@ class PVersion(PBasic):
     """
         version.json bearbeiten
     """
+    micodb = None
 
     def __init__(self):
         PBasic.__init__(self)
         self.init()
 
     def init(self):
-        # self.ccFile = PStatics.getVersionfile()
-        self.ddb = JsonDictDb(PStatics.getDbVersionfile(), False)
-        self.data = self.ddb.get('1')
-        if not self.ddb.exist():
-            db = {
-                'date': self.jetzt,  # time.localtime(),
-                'major': 0,
-                'minor': 0,
-                'revision': 1,
-                'build': 0,
-            }
-            self.ddb.set('1', db)
-            self.ddb.save()
+        self.micodb = JsonDictDb(PStatics.getVersionfile(), False)
+
+        if not self.micodb.exist():
+            self.micodb.set(version_data)
+            self.micodb.save()
 
     def write_versionfile(self):
-        self.data = self.ddb.get('1')
+        da = self.micodb.get('1')
         pprint.pprint(
             {
-                'date': self.data['date'],
-                'version': str(self.data['major']) + '.' + str(self.data['minor']) + '.' + str(self.data['revision']),
-                'build': self.data['build']
+                'date': da['date'],
+                'version': str(da['major']) + '.' + str(da['minor']) + '.' + str(da['revision']),
+                'build': da['build']
             }
         )
-
         self._write()
 
+    def save_version(self):
+        self.micodb.save()
+
     def increment_build(self):
-        # self.data = self.ddb.get('1')
-        self.data['build'] += 1
-        self.data['date'] = self.jetzt
-        self.ddb.save()
+        da = self.micodb.get('1')
+        da['build'] += 1
+        da['date'] = self.jetzt
+        self.save_version()
 
     def increment_major(self):
-        self.data['major'] += 1
-        self.data['minor'] = 0
-        self.data['revision'] = 0
-        self.ddb.save()
+        da = self.micodb.get('1')
+        da['major'] += 1
+        da['minor'] = '0'
+        da['revision'] = '0'
+        self.save_version()
 
     def increment_minor(self):
-        self.data['minor'] += 1
-        self.data['revision'] = 0
-        self.ddb.save()
+        da = self.micodb.get('1')
+        da['minor'] += 1
+        da['revision'] = 0
+        self.save_version()
 
     def increment_revision(self):
-        self.data['revision'] += 1
-        self.ddb.save()
+        da = self.micodb.get('1')
+        da['revision'] += 1
+        self.save_version()
 
 
 class PHistory(PBasic):
@@ -164,23 +189,30 @@ class PHistory(PBasic):
         history.json bearbeiten
     """
 
+    data = None
+
     def __init__(self):
         PBasic.__init__(self)
         self.init()
 
     def init(self):
-        self.ddb = JsonDictDb(PStatics.getDbHistoryfile(), False)
+        self.micodb = JsonDictDb(PStatics.getHistoryfile(), False)
 
-        a = 0
+        if not self.micodb.exist():
+            # self.micodb.set(history_data)
+            # self.micodb.save()
 
-        if not self.ddb.exist():
-            db = {
-                'start': self.jetzt,
-                'end': self.jetzt,
-                'minutes': 0,
-            }
-            nic = self.ddb.setlist(db, xlistid='1')
-            self.ddb.save()
+            # da = self.micodb.get("1")
+            self.micodb.set(self.getNewDataset())
+            self.micodb.save()
+
+    def getNewDataset(self, da=None):
+        if da is None:
+            da = history_data
+        da['id'] = self.getNewId()
+        da['start'] = self.jetzt
+        da['end'] = self.jetzt
+        return da
 
     # (IMHO) the simplest approach:
     def sortedDictValues1(adict):
@@ -204,10 +236,8 @@ class PHistory(PBasic):
         return map(adict.get, keys)
 
     def makezeit(self, lastline):
-        """
-        Die letzte Zeit berechnen bevor die neue Zeile eingefügt wird.
+        """ Die letzte Zeit berechnen bevor die neue Zeile eingefügt wird.
         :param lastline:
-        :param linenr:
         :return:
         """
         t1 = datetime.datetime.strptime(lastline['start'], self.ccFormat)
@@ -215,30 +245,17 @@ class PHistory(PBasic):
         diff = t2 - t1
         return int(diff.total_seconds() / 60)
 
-    def insertnewline(self):
-        """
-        Eine neue Zeile einfügen
-        :return:
-        """
-        js = {'start': self.jetzt, 'end': self.jetzt, 'minutes': 0}
-        return js
-
     def increment_history(self):
         a = 0
-        lastIds = self.ddb.getall()
-        coo = self.ddb.count()
-        # lastIds.sort(reverse=True)
 
-        # lastId = lastIds[0]
+        self.data = self.micodb.getlast()
 
-        t1 = self.ddb.get('1')
-        t2 = self.ddb.getlist('1', 0)
+        # self.data = self.micodb.getlistlast('1')
+        # self.data = []
 
-        t0 = self.ddb.getlast()
+        newid = self.getNewId()
 
-        self.data = self.ddb.getlistlast('1')
-
-        a = 0
+        a = self.micodb.getId()
 
         # datum/zeit von jetzt
         # aktuelle datum/Zeit (datetime)
@@ -254,22 +271,20 @@ class PHistory(PBasic):
         if diff30 > 0:
             # Differenz ist größer 30 minuten. Neue Zeile einfügen.
 
-            # im vorhandenen Datensatz die Zeit setzen
+            # im vorhandenen Datensatz die anzahl der Minuten setzen
             self.data['minutes'] = self.makezeit(self.data)
             # einen neuen Datensatz einfügen
-            # self.ddb.set(self.ddb.getId(), self.insertnewline())
-            self.ddb.setlist(self.data, xdictid='1')
+            self.micodb.set(self.getNewDataset())
         else:
             # Differenz ist kleiner als 30 Minuten. Der Wert 'end' wird aktualisiert
             self.data['end'] = self.jetzt
             self.data['minutes'] = self.makezeit(self.data)
 
-        self.ddb.save()
+        self.micodb.save()
 
     def listen(self):
-        """ listet die History files auf und stellt sie zum Ändern bereit """
-
-        pprint.pprint(self.ddb.db)
+        """ listet die History files auf """
+        pprint.pprint(self.micodb.db)
 
 
 # -------------------------------------------------------------------------
@@ -284,6 +299,9 @@ parser.add_argument('-wd',
 parser.add_argument('-q', '--quit',
                     action='store_true', dest='quit', default=False,
                     help='Keine Ausgabe auf der console')
+
+parser.add_argument('--path', action='store', dest='setpath',
+                    help='Der Pfad in dem die Datenfiles abgelegt werden.')
 
 # -- version
 parser.add_argument('--version', action='store_true', dest='version', default=False,
@@ -305,14 +323,20 @@ parser.add_argument('--history', action='store_true', dest='history', default=Fa
                     help='Jeder Befehl der History wird hiermit eingeleitet.')
 parser.add_argument('-hi', '--insert', action='store_true', dest='insert', default=False,
                     help='Fügt einen Datensatz in die History ein')
-parser.add_argument('-li', '--list', action='store_true', dest='listen', default=False,
+parser.add_argument('-li', '--list', action='store_true', dest='list', default=False,
                     help='Die Version printen')
 
 result = parser.parse_args()
 
 
 def run():
+    global gPath
+    global gCwd
+
     gCwd = result.cwd
+
+    if result.setpath:
+        gPath = result.setpath
 
     if result.version:
         pv = PVersion()
@@ -333,18 +357,13 @@ def run():
             pv.write_versionfile()
 
     if result.history:
-        # gHistoryFilename = result.history_file
         ph = PHistory()
 
         if result.insert:
             ph.increment_history()
 
-        # print 'ja' if result.quit else 'nein'
-
-        # Usage example.
-        # PStatics.printconsole('working path', gCwd)
-        # PStatics.printconsole('version file path', PStatics.getVersionfile())
-        # PStatics.printconsole('history file path', PStatics.getHistoryfile())
+        if result.list:
+            ph.listen()
 
 
 if __name__ == "__main__":

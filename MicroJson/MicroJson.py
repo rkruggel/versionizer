@@ -19,30 +19,180 @@ import os
 import time
 import json
 
-import argparse
-import datetime
-import pprint
-
 
 JSONDB_PREFIX = 'jsondb_'
 JSONDB_PATH = 'jsondb'
 
-# gCwd = None
-# gConfig = {}
-#
-# version_dict = {}
-# version_list = []
-#
-# version_data = {
-# "date": "01.01.1970 00:00:00",
-# "major": 0,
-# "minor": 0,
-# "revision": 0,
-# "build": 0
-# }
+
+class pickleDb(object):
+    loco = None  # der filename
+    fsave = None  # True -> es soll gespeichert werden
+    db = {}  # die DB als dict
+
+    def __init__(self, location, option):
+        """Creates a database object and loads the data from the location path.
+        If the file does not exist it will be created on the first update."""
+        self.load(location, option)
+
+    def load(self, location, option):
+        """Loads, reloads or changes the path to the db file.
+        DO NOT USE this method has it may be deprecated in the future."""
+        location = os.path.expanduser(location)
+        self.loco = location
+        self.fsave = option
+        if os.path.exists(location):
+            self._loaddb()
+        else:
+            self.db = {}
+        return True
+
+    def dump(self):
+        """Force save memory db to file."""
+        self._dumpdb(True)
+        return True
+
+    def set(self, key, value):
+        """Set the (string,int,whatever) value of a key"""
+        self.db[key] = value
+        self._dumpdb(self.fsave)
+        return True
+
+    def get(self, key):
+        """Get the value of a key"""
+        try:
+            return self.db[key]
+        except KeyError:
+            return None
+
+    def getall(self):
+        """Return a list of all keys in db"""
+        return self.db.keys()
+
+    def rem(self, key):
+        """Delete a key"""
+        del self.db[key]
+        self._dumpdb(self.fsave)
+        return True
+
+    def lcreate(self, name):
+        """Create a list"""
+        self.db[name] = []
+        self._dumpdb(self.fsave)
+        return True
+
+    def ladd(self, name, value):
+        """Add a value to a list"""
+        self.db[name].append(value)
+        self._dumpdb(self.fsave)
+        return True
+
+    def lgetall(self, name):
+        """Return all values in a list"""
+        return self.db[name]
+
+    def lget(self, name, pos):
+        """Return one value in a list"""
+        return self.db[name][pos]
+
+    def lrem(self, name):
+        """Remove a list and all of its values"""
+        number = len(self.db[name])
+        del self.db[name]
+        self._dumpdb(self.fsave)
+        return number
+
+    def lpop(self, name, pos):
+        """Remove one value in a list"""
+        value = self.db[name][pos]
+        del self.db[name][pos]
+        self._dumpdb(self.fsave)
+        return value
+
+    def llen(self, name):
+        """Returns the length of the list"""
+        return len(self.db[name])
+
+    def append(self, key, more):
+        """Add more to a key's value"""
+        tmp = self.db[key]
+        self.db[key] = ('%s%s' % (tmp, more))
+        self._dumpdb(self.fsave)
+        return True
+
+    def lappend(self, name, pos, more):
+        """Add more to a value in a list"""
+        tmp = self.db[name][pos]
+        self.db[name][pos] = ('%s%s' % (tmp, more))
+        self._dumpdb(self.fsave)
+        return True
+
+    def dcreate(self, name):
+        """Create a dict"""
+        self.db[name] = {}
+        self._dumpdb(self.fsave)
+        return True
+
+    def dadd(self, name, pair):
+        """Add a key-value pair to a dict, "pair" is a tuple"""
+        self.db[name][pair[0]] = pair[1]
+        self._dumpdb(self.fsave)
+        return True
+
+    def dget(self, name, key):
+        """Return the value for a key in a dict"""
+        return self.db[name][key]
+
+    def dgetall(self, name):
+        """Return all key-value pairs from a dict"""
+        return self.db[name]
+
+    def drem(self, name):
+        """Remove a dict and all of its pairs"""
+        del self.db[name]
+        self._dumpdb(self.fsave)
+        return True
+
+    def dpop(self, name, key):
+        """Remove one key-value in a dict"""
+        value = self.db[name][key]
+        del self.db[name][key]
+        self._dumpdb(self.fsave)
+        return value
+
+    def dkeys(self, name):
+        """Return all the keys for a dict"""
+        return self.db[name].keys()
+
+    def dvals(self, name):
+        """Return all the values for a dict"""
+        return self.db[name].values()
+
+    def dexists(self, name, key):
+        """Determine if a key exists or not"""
+        if self.db[name][key] is not None:
+            return 1
+        else:
+            return 0
+
+    def deldb(self):
+        """Delete everything from the database"""
+        self.db = {}
+        self._dumpdb(self.fsave)
+        return True
+
+    def _loaddb(self):
+        """Load or reload the json info from the file"""
+        # self.db = simplejson.load(open(self.loco, 'rb'))
+        self.db = json.load(open(self.loco, 'rb'))
+
+    def _dumpdb(self, forced):
+        """Dump (write, save) the json dump into the file"""
+        if forced:
+            # simplejson.dump(self.db, open(self.loco, 'wb'))
+            json.dump(self.db, open(self.loco, 'wb'))
 
 
-class MicroJson(object):
+class MicroJsonBasic(object):
     path = None  # nur der dirname
     file = None  # nur der filename
     loco = None  # der full filename
@@ -60,11 +210,16 @@ class MicroJson(object):
             os.mkdir(self.path)
 
     def _loaddb(self):
-        """Load or reload the json info from the file"""
+        """ Load or reload the json info from the file
+        :return:
+        """
         self.db = json.load(open(self.loco, 'rb'))
 
     def _savedb(self, forced):
-        """Dump (write, save) the json save into the file"""
+        """ Dump (write, save) the json save into the file
+        :param forced:
+        :return:
+        """
         if forced:
             json.dump(self.db, open(self.loco, 'wb'), indent=4)
 
@@ -73,23 +228,23 @@ class MicroJson(object):
     #
 
     def getId(self):
-        return "%.6f" % time.time()
+        return "%.6i" % time.time()
 
 
-class JsonDictDb(MicroJson):
+class MicroJson(MicroJsonBasic):
     def __init__(self, location, option):
-        """Creates a database object and loads the data from the location path.
+        """ Creates a database object and loads the data from the location path.
             If the file does not exist it will be created on the first update.
 
         >>> fi = '../.testdb/t_dict.json'
-        >>> tb = JsonDictDb(fi, False)
+        >>> tb = MicroJson(fi, False)
         >>> os.path.exists(fi)
         True
         >>> import shutil
         >>> fi = '../.testdb/'
         >>> shutil.rmtree(fi)
         """
-        super(JsonDictDb, self).__init__(location, option)
+        super(MicroJson, self).__init__(location, option)
         self.db = {}
         if not os.path.exists(self.loco):
             self._savedb(True)
@@ -100,8 +255,9 @@ class JsonDictDb(MicroJson):
     #
 
     def load(self):
-        """Loads, reloads or changes the path to the db file.
-        DO NOT USE this method has it may be deprecated in the future."""
+        """ Loads, reloads or changes the path to the db file.
+            DO NOT USE this method has it may be deprecated in the future.
+        """
         # if os.path.exists(location):
         self._loaddb()
         # else:
@@ -109,7 +265,8 @@ class JsonDictDb(MicroJson):
         return True
 
     def save(self):
-        """Force save memory db to file."""
+        """ Force save memory db to file.
+        """
         ss = self.db
         self._savedb(True)
         return True
@@ -121,9 +278,9 @@ class JsonDictDb(MicroJson):
     # ## -------------------------------------------------------------------------------------
     def set(self, value, xid=None):
         """
-        :param value: zu speichernder wert. Es handelt sich hierbei immer
+            :param value: zu speichernder wert. Es handelt sich hierbei immer
                         um ein dict.
-        :return:
+            :return:
         """
         a = 0
 
@@ -173,19 +330,18 @@ class JsonDictDb(MicroJson):
         return xlistid
 
     def _set_addid(self, value, xid=None):
-        """
-        Erzeugt wenn nötig eine ID und fügt diese dem Dict hinzu.
+        """ Erzeugt wenn nötig eine ID und fügt diese dem Dict hinzu.
 
-        Das dict 'value' hat immer ein Feld 'Id'. Wenn diese nicht vorhanden ist, wird
-         sie in das dict eingefügt.
+            Das dict 'value' hat immer ein Feld 'Id'. Wenn diese nicht vorhanden ist, wird
+            sie in das dict eingefügt.
 
-        Eine Id 'None' ist bedeutet das immer, das eine ID erzeugt wird.
+            Eine Id 'None' ist bedeutet das immer, das eine ID erzeugt wird.
 
-        Wenn der parameter xid <> None ist wird dieser wert als ID genommen
+            Wenn der parameter xid <> None ist wird dieser wert als ID genommen
 
-        :param value: Das dict
-        :param xid: Die ID, wenn vorhanden
-        :return:
+            :param value: Das dict
+            :param xid: Die ID, wenn vorhanden
+            :return:
         """
         a = 0
 
@@ -217,21 +373,21 @@ class JsonDictDb(MicroJson):
 
     # ## -------------------------------------------------------------------------------------
     def get(self, xid):
-        """Get the value of a key"""
+        """ Get the value of a key"""
         try:
             return self.db[xid]
         except KeyError:
             return None
 
     def getlist(self, xid, xlistid):
-        """Get one item of the list"""
+        """ Get one item of the list"""
         try:
             return self.get(xid)[xlistid]
         except KeyError:
             return None
 
     def getkeys(self):
-        """Return a list of all keys in db"""
+        """ Return a list of all keys in db"""
         return self.db.keys()
 
     def getall(self):
@@ -256,20 +412,20 @@ class JsonDictDb(MicroJson):
         return data
 
     def rem(self, xid):
-        """Delete a key"""
+        """ Delete a key"""
         del self.db[xid]
         self._savedb(self.fsave)
         return True
 
     def count(self):
         """
-        :return: Anzahl der Datensätze in der db
+            :return: Anzahl der Datensätze in der db
         """
         return len(self.db)
 
     def exist(self, xid=''):
         """
-        :return: True, wenn datensätze existieren
+            :return: True, wenn datensätze existieren
         """
         if xid == '':
             return self.count() >= 1
@@ -281,15 +437,15 @@ class JsonDictDb(MicroJson):
         return True
 
 
-# class JsonListDb(MicroJson):
+# class JsonListDb(MicroJsonBasic):
 # def __init__(self, location, option):
 # """Creates a database object and loads the data from the location path.
 # If the file does not exist it will be created on the first update."""
 # super(JsonListDb, self).__init__(location, option)
 # self.db = []
 # if not os.path.exists(self.loco):
-#             self._savedb(True)
-#         self.load()
+# self._savedb(True)
+# self.load()
 #
 #     #
 #     # laden / speichern
@@ -401,51 +557,51 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------
 
     # -- init
-    tb = JsonDictDb('../jsondb/t_dict.json', False)
+    tb = MicroJson('../jsondb/t_dict.json', False)
 
-    # -- alles lesen
-    datadict = tb.getall()
-
-    # -- Dict-Datensatz hinzufügen
-    if 0:
-        datadict = {
-            'vorname': 'roland',
-            'name': 'roland',
-            'alter': 54
-        }
-        nid = tb.set(datadict, xid='kl99')
-
-        datadict = {
-            'id': '32',
-            'vorname': 'petra',
-            'name': 'kruggel',
-            'alter': 60
-        }
-        tb.set(datadict)
-
-        datadict = {
-            'id': '188',
-            'vorname': 'Tanja',
-            'name': 'Othen',
-            'alter': 26
-        }
-        tb.set(datadict, xid='189')
-
-    # -- Dict-Daten ändern
-    if 0:
-        # -- den ersten key lesen
-        keys = tb.getkeys()
-
-        # -- den ersten datensatz lesen
-        datafirst = tb.getfirst()
-
-        # -- den letzten datensatz lesen
-        datalast = tb.getlast()
-
-        # -- den ersten datensatz ändern
-        datafirst['name'] = 'Kruggel.'
-        datafirst['vorname'] = 'Roland'
-        tb.set(datafirst)
+    # # -- alles lesen
+    # datadict = tb.getall()
+    #
+    # # -- Dict-Datensatz hinzufügen
+    # if 0:
+    #     datadict = {
+    #         'vorname': 'roland',
+    #         'name': 'roland',
+    #         'alter': 54
+    #     }
+    #     nid = tb.set(datadict, xid='kl99')
+    #
+    #     datadict = {
+    #         'id': '32',
+    #         'vorname': 'petra',
+    #         'name': 'kruggel',
+    #         'alter': 60
+    #     }
+    #     tb.set(datadict)
+    #
+    #     datadict = {
+    #         'id': '188',
+    #         'vorname': 'Tanja',
+    #         'name': 'Othen',
+    #         'alter': 26
+    #     }
+    #     tb.set(datadict, xid='189')
+    #
+    # # -- Dict-Daten ändern
+    # if 0:
+    #     # -- den ersten key lesen
+    #     keys = tb.getkeys()
+    #
+    #     # -- den ersten datensatz lesen
+    #     datafirst = tb.getfirst()
+    #
+    #     # -- den letzten datensatz lesen
+    #     datalast = tb.getlast()
+    #
+    #     # -- den ersten datensatz ändern
+    #     datafirst['name'] = 'Kruggel.'
+    #     datafirst['vorname'] = 'Roland'
+    #     tb.set(datafirst)
 
     # -------------------------------------------------------------------------
     #
